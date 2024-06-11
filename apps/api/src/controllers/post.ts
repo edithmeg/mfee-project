@@ -37,7 +37,7 @@ const getPostById = async (req, res) => {
 };
 
 // Create post
-const createCategory = async (req, res) => {
+const createPost = async (req, res) => {
   try {
     const post = await Post.create(req.body);
     // Return the created post with a 201 status code
@@ -49,7 +49,7 @@ const createCategory = async (req, res) => {
 };
 
 // Update post
-const updateCategory = async (req, res) => {
+const updatePost = async (req, res) => {
   // Retrieve the id from the route params
   const { id } = req.params;
   try {
@@ -69,7 +69,7 @@ const updateCategory = async (req, res) => {
 };
 
 // Delete post
-const deleteCategory = async (req, res) => {
+const deletePost = async (req, res) => {
   // Retrieve the id from route params
   const { id } = req.params;
 
@@ -92,7 +92,7 @@ const deleteCategory = async (req, res) => {
 export default {
   getPosts,
   getPostById,
-  createCategory,
-  updateCategory,
-  deleteCategory
+  createPost,
+  updatePost,
+  deletePost
 };
