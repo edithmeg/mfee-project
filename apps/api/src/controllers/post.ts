@@ -1,98 +1,121 @@
+import { RequestHandler } from 'express';
+import Comment from '../models/comment';
 import Post from '../models/post';
 
 // Get all posts
-const getPosts = async (req, res) => {
+const getPosts: RequestHandler = async (_req, res) => {
   try {
-    const post = await Post.find();
-    // Return all the posts with a 200 status code
-    res.status(200).json(post);
+    const posts = await Post.find();
+    return res.status(200).json(posts);
   } catch (error) {
     const { message } = error;
-    res.status(500).json({ message });
+    return res.status(500).json({ message });
   }
 };
 
 // Get Post by id
-const getPostById = async (req, res) => {
-  // Retrieve the id from the route params
+const getPostById: RequestHandler = async (req, res) => {
   const { id } = req.params;
-
   try {
-    // Check if we have a Post with that id
-    const post = await Post.findById(id);
-
+    const post = await Post.findById(id).populate('comments').populate('category');
+    // if post by id is not found, return 404 status message
     if (!post) {
-      // If we don't find the post return a 404 status code with a message
       return res.status(404).json({ message: 'Post not found' });
-      // Note: Remember that json method doesn't interrupt the workflow
-      // therefore is important to add a "return" to break the process
     }
-
-    // Return the post with a 200 status code
-    res.status(200).json(post);
+    return res.status(200).json(post);
   } catch (error) {
     const { message } = error;
-    res.status(500).json({ message });
+    return res.status(500).json({ message });
+  }
+};
+
+// Get post by category
+const getPostByCategory: RequestHandler = async (req, res) => {
+  const { categoryId } = req.params;
+  try {
+    const posts = await Post.where('category').equals(categoryId).populate('category');
+    // if posts by category are not found, return 404 status message
+    if (!posts) {
+      return res.status(404).json({ message: 'Posts not found in that category' });
+    }
+    return res.status(200).json(posts);
+  } catch (error) {
+    const { message } = error;
+    return res.status(500).json({ message });
   }
 };
 
 // Create post
-const createPost = async (req, res) => {
+const createPost: RequestHandler = async (req, res) => {
+  const postData = req.body;
   try {
-    const post = await Post.create(req.body);
-    // Return the created post with a 201 status code
-    res.status(201).json(post);
+    const newPost = await Post.create(postData);
+    return res.status(201).json(newPost);
   } catch (error) {
     const { message } = error;
-    res.status(500).json({ message });
+    return res.status(500).json({ message });
   }
 };
 
 // Update post
-const updatePost = async (req, res) => {
-  // Retrieve the id from the route params
+const updatePost: RequestHandler = async (req, res) => {
   const { id } = req.params;
+  const newPostData = req.body;
   try {
-    // Check and update if we have a post with that id
-    const post = await Post.findByIdAndUpdate(id, req.body, { new: true });
-    // If we don't find the post return a 404 status code with a message
-    if (!post) {
+    const modifiedPost = await Post.findByIdAndUpdate(id, newPostData, { new: true, runValidators: true });
+    // if post not found, return 404 status message
+    if (!modifiedPost) {
       return res.status(404).json({ message: 'Post not found' });
     }
-
-    // Return the updated post with a 200 status code
-    res.status(200).json(post);
+    return res.status(200).json(modifiedPost);
   } catch (error) {
     const { message } = error;
-    res.status(500).json({ message });
+    return res.status(500).json({ message });
+  }
+};
+
+// Create comment
+const createComment: RequestHandler = async (req, res) => {
+  const { id } = req.params;
+  const commentData = req.body;
+  try {
+    const post = await Post.findById(id);
+    const comment = await Comment.create(commentData);
+    if (!comment) {
+      return res.status(400).json({ message: 'Comment not created' });
+    }
+    post.comments.push(comment._id);
+    await post.save();
+    return res.status(201).json(comment);
+  } catch (error) {
+    const { message } = error;
+    return res.status(500).json({ message });
   }
 };
 
 // Delete post
-const deletePost = async (req, res) => {
-  // Retrieve the id from route params
+const deletePost: RequestHandler = async (req, res) => {
   const { id } = req.params;
-
   try {
-    // Check and delete if we have a post with that id
-    const post = await Post.findByIdAndDelete(id);
-    // If we don't find the post return a 404 status code with a message
-    if (!post) {
+    const deletedPost = await Post.findByIdAndDelete(id, {});
+    // if post not found, return 404 status message
+    if (!deletedPost) {
       return res.status(404).json({ message: 'Post not found' });
     }
-
-    // Return a 200 status code
-    res.status(200).json(post);
+    await Comment.deleteMany({ _id: { $in: deletedPost.comments } });
+    return res.status(200).json(deletedPost);
   } catch (error) {
     const { message } = error;
-    res.status(500).json({ message });
+    return res.status(500).json({ message });
   }
 };
 
 export default {
   getPosts,
   getPostById,
+  getPostByCategory,
   createPost,
   updatePost,
-  deletePost
+  deletePost,
+  createComment
 };
