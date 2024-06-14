@@ -80,6 +80,10 @@ const createComment: RequestHandler = async (req, res) => {
   const commentData = req.body;
   try {
     const post = await Post.findById(id);
+    // if post not found, return 404 status message
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
     const comment = await Comment.create(commentData);
     if (!comment) {
       return res.status(400).json({ message: 'Comment not created' });
